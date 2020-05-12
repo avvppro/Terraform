@@ -2,7 +2,7 @@
 #2 servers + load balancer + auto scaling
 #zero downtime + green/blue deployment mode
 provider "aws" {
-  region = "eu-central-1"
+  region = var.region
 }
 #---------------------------------------------------
 data "aws_availability_zones" "available" {}
@@ -17,9 +17,9 @@ data "aws_ami" "latest_amazon_linux" {
 #-------------security group for web servers-------------
 resource "aws_security_group" "for_web_server" {
   name        = "group_for_server"
-  description = "80-all 22-internal"
+  description = "server SG"
   dynamic "ingress" { #dynamic block creation for ingress connection
-    for_each = ["80"]
+    for_each = var.allow_ports_server
     content {
       description = "Dynamic ingress port open"
       from_port   = ingress.value
@@ -47,9 +47,9 @@ resource "aws_security_group" "for_web_server" {
 #-------------security group for load_balancer-------------
 resource "aws_security_group" "for_load_balancer" {
   name        = "group_for_balancer"
-  description = "80/443"
+  description = "balancer SG"
   dynamic "ingress" { #dynamic block creation for ingress connection
-    for_each = ["80", "443"]
+    for_each = var.allow_ports_balancer
     content {
       description = "Dynamic ingress port open"
       from_port   = ingress.value
@@ -72,7 +72,7 @@ resource "aws_security_group" "for_load_balancer" {
 resource "aws_launch_configuration" "web" {
   name_prefix     = "Launch_conf-"
   image_id        = data.aws_ami.latest_amazon_linux.id
-  instance_type   = "t2.micro"
+  instance_type   = var.instance_type
   security_groups = [aws_security_group.for_web_server.id]
   user_data       = file("user_data.sh")
   lifecycle {
