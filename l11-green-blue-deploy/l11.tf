@@ -40,9 +40,7 @@ resource "aws_security_group" "for_web_server" {
     protocol    = "-1" # -1 means any protocol
     cidr_blocks = ["0.0.0.0/0"]
   }
-  tags = {
-    Name = "Webserver-SG"
-  }
+  tags = merge(var.common_tags, map("Name", "Webserver-SG"))
 }
 #-------------security group for load_balancer-------------
 resource "aws_security_group" "for_load_balancer" {
@@ -64,9 +62,7 @@ resource "aws_security_group" "for_load_balancer" {
     protocol    = "-1" # -1 means any protocol
     cidr_blocks = ["0.0.0.0/0"]
   }
-  tags = {
-    Name = "LoadBalancer-SG"
-  }
+  tags = merge(var.common_tags, map("Name", "LoadBalancer-SG"))
 }
 #--------------launch configuration vs dynamic(prefix) name---------------------
 resource "aws_launch_configuration" "web" {
@@ -95,9 +91,10 @@ resource "aws_autoscaling_group" "web_scale" {
   dynamic "tag" {
     for_each = {
       #   tag.key = "tag.value" << how to create tags in circle
-      Name    = "ASG-Web-Server"
-      Owner   = "avvppro"
-      Project = "testing"
+      Name        = "ASG-Web-Server"
+      Owner       = "${var.common_tags["Owner"]}"
+      Project     = "${var.common_tags["Project"]}"
+      Environment = "${var.common_tags["Environment"]}"
     }
     content {
       key                 = tag.key
@@ -127,22 +124,16 @@ resource "aws_elb" "web_elb" {
     target              = "HTTP:80/"
     interval            = 10
   }
-  tags = {
-    Name = "Web-servers-ELB"
-  }
+  tags = merge(var.common_tags, map("Name", "Web-servers-ELB"))
 }
 #------Default subnets  for web servers in 2 zones------------------------------
 resource "aws_default_subnet" "default_az0" {
   availability_zone = data.aws_availability_zones.available.names[0]
-  tags = {
-    Name = "Default subnet for zone 0"
-  }
+  tags              = merge(var.common_tags, map("Name", "Default subnet for zone 0"))
 }
 resource "aws_default_subnet" "default_az1" {
   availability_zone = data.aws_availability_zones.available.names[1]
-  tags = {
-    Name = "Default subnet for zone 1"
-  }
+  tags              = merge(var.common_tags, map("Name", "Default subnet for zone 1"))
 }
 #-----------Load balancer url for domain creation ------------------------------
 output "web_elb_url" {
