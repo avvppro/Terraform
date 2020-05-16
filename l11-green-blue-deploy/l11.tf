@@ -19,7 +19,7 @@ resource "aws_security_group" "for_web_server" {
   name        = "group_for_server"
   description = "server SG"
   dynamic "ingress" { #dynamic block creation for ingress connection
-    for_each = var.allow_ports_server
+    for_each = lookup(var.allow_ports_server, var.stage)
     content {
       description = "Dynamic ingress port open"
       from_port   = ingress.value
@@ -28,26 +28,20 @@ resource "aws_security_group" "for_web_server" {
       cidr_blocks = ["0.0.0.0/0"] #from anywhere
     }
   }
-  ingress {
-    protocol    = "tcp"
-    from_port   = 22
-    to_port     = 22
-    cidr_blocks = ["10.10.0.0/16"] #from internal
-  }
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1" # -1 means any protocol
     cidr_blocks = ["0.0.0.0/0"]
   }
-  tags = merge(var.common_tags, map("Name", "Webserver-SG"))
+  tags = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "Webserver-SG"))
 }
 #-------------security group for load_balancer-------------
 resource "aws_security_group" "for_load_balancer" {
   name        = "group_for_balancer"
   description = "balancer SG"
   dynamic "ingress" { #dynamic block creation for ingress connection
-    for_each = var.allow_ports_balancer
+    for_each = lookup(var.allow_ports_balancer, var.stage)
     content {
       description = "Dynamic ingress port open"
       from_port   = ingress.value
@@ -62,13 +56,13 @@ resource "aws_security_group" "for_load_balancer" {
     protocol    = "-1" # -1 means any protocol
     cidr_blocks = ["0.0.0.0/0"]
   }
-  tags = merge(var.common_tags, map("Name", "LoadBalancer-SG"))
+  tags = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "LoadBalancer-SG"))
 }
 #--------------launch configuration vs dynamic(prefix) name---------------------
 resource "aws_launch_configuration" "web" {
   name_prefix     = "Launch_conf-"
   image_id        = data.aws_ami.latest_amazon_linux.id
-  instance_type   = var.instance_type
+  instance_type   = lookup(var.instance_type, var.stage) #different instance types for different stages
   security_groups = [aws_security_group.for_web_server.id]
   user_data       = file("user_data.sh")
   lifecycle {
@@ -94,7 +88,7 @@ resource "aws_autoscaling_group" "web_scale" {
       Name        = "ASG-Web-Server"
       Owner       = "${var.common_tags["Owner"]}"
       Project     = "${var.common_tags["Project"]}"
-      Environment = "${var.common_tags["Environment"]}"
+      Environment = "${var.stage}"
     }
     content {
       key                 = tag.key
@@ -124,16 +118,16 @@ resource "aws_elb" "web_elb" {
     target              = "HTTP:80/"
     interval            = 10
   }
-  tags = merge(var.common_tags, map("Name", "Web-servers-ELB"))
+  tags = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "Web-servers-ELB"))
 }
 #------Default subnets  for web servers in 2 zones------------------------------
 resource "aws_default_subnet" "default_az0" {
   availability_zone = data.aws_availability_zones.available.names[0]
-  tags              = merge(var.common_tags, map("Name", "Default subnet for zone 0"))
+  tags              = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "Default subnet for zone 0"))
 }
 resource "aws_default_subnet" "default_az1" {
   availability_zone = data.aws_availability_zones.available.names[1]
-  tags              = merge(var.common_tags, map("Name", "Default subnet for zone 1"))
+  tags              = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "Default subnet for zone 1"))
 }
 #-----------Load balancer url for domain creation ------------------------------
 output "web_elb_url" {
