@@ -18,6 +18,7 @@ data "aws_ami" "latest_amazon_linux" {
 resource "aws_security_group" "for_web_server" {
   name        = "group_for_server"
   description = "server SG"
+  vpc_id      = aws_vpc.vpc0.id
   dynamic "ingress" { #dynamic block creation for ingress connection
     for_each = lookup(var.allow_ports_server, var.stage)
     content {
@@ -40,6 +41,7 @@ resource "aws_security_group" "for_web_server" {
 resource "aws_security_group" "for_load_balancer" {
   name        = "group_for_balancer"
   description = "balancer SG"
+  vpc_id      = aws_vpc.vpc0.id
   dynamic "ingress" { #dynamic block creation for ingress connection
     for_each = lookup(var.allow_ports_balancer, var.stage)
     content {
@@ -79,7 +81,7 @@ resource "aws_autoscaling_group" "web_scale" {
   min_size             = 2
   max_size             = 2
   min_elb_capacity     = 2
-  vpc_zone_identifier  = [aws_default_subnet.default_az0.id, aws_default_subnet.default_az1.id]
+  vpc_zone_identifier  = [aws_subnet.az0.id, aws_subnet.az1.id]
   health_check_type    = "ELB"
   load_balancers       = [aws_elb.web_elb.name]
   dynamic "tag" {
@@ -102,9 +104,10 @@ resource "aws_autoscaling_group" "web_scale" {
 }
 #----------elastic load balancer for work in 2 zones ---------------------------
 resource "aws_elb" "web_elb" {
-  name               = "web-servers-elb"
-  availability_zones = [data.aws_availability_zones.available.names[0], data.aws_availability_zones.available.names[1]]
-  security_groups    = [aws_security_group.for_load_balancer.id]
+  name = "web-servers-elb"
+  # availability_zones = [data.aws_availability_zones.available.names[0], data.aws_availability_zones.available.names[1]]
+  security_groups = [aws_security_group.for_load_balancer.id]
+  subnets         = [aws_subnet.az0.id, aws_subnet.az1.id]
   listener {
     instance_port     = 80
     instance_protocol = "http"
@@ -120,7 +123,31 @@ resource "aws_elb" "web_elb" {
   }
   tags = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "Web-servers-ELB"))
 }
+#-------------------------------------------------------------------------------
+resource "aws_vpc" "vpc0" {
+  cidr_block = "10.0.0.0/16"
+}
+resource "aws_internet_gateway" "gw" {
+  vpc_id = aws_vpc.vpc0.id
+  tags   = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "Internet GW for vpc0"))
+}
+
+resource "aws_subnet" "az0" {
+  vpc_id                  = aws_vpc.vpc0.id
+  map_public_ip_on_launch = true
+  cidr_block              = "10.0.0.0/24"
+  availability_zone       = data.aws_availability_zones.available.names[0]
+  tags                    = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "My subnet for zone 0"))
+}
+resource "aws_subnet" "az1" {
+  vpc_id                  = aws_vpc.vpc0.id
+  map_public_ip_on_launch = true
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = data.aws_availability_zones.available.names[1]
+  tags                    = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "My subnet for zone 1"))
+}
 #------Default subnets  for web servers in 2 zones------------------------------
+/*
 resource "aws_default_subnet" "default_az0" {
   availability_zone = data.aws_availability_zones.available.names[0]
   tags              = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "Default subnet for zone 0"))
@@ -129,6 +156,7 @@ resource "aws_default_subnet" "default_az1" {
   availability_zone = data.aws_availability_zones.available.names[1]
   tags              = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "Default subnet for zone 1"))
 }
+*/
 #-----------Load balancer url for domain creation ------------------------------
 output "web_elb_url" {
   value = aws_elb.web_elb.dns_name
