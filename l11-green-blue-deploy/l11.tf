@@ -29,12 +29,13 @@ resource "aws_security_group" "for_web_server" {
       cidr_blocks = [var.vpc0_cidr] #from my vpc
     }
   }
+  /* ###for ping 
   ingress {
     from_port   = 8
     to_port     = 0
     protocol    = "icmp"
     cidr_blocks = ["0.0.0.0/0"]
-  }
+  }*/
   egress {
     from_port   = 0
     to_port     = 0
@@ -157,14 +158,14 @@ resource "aws_main_route_table_association" "a" {
 resource "aws_subnet" "az0" {
   vpc_id                  = aws_vpc.vpc0.id
   map_public_ip_on_launch = true
-  cidr_block              = "10.0.0.0/24"
+  cidr_block              = var.az0_cidr
   availability_zone       = data.aws_availability_zones.available.names[0]
   tags                    = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "subnet for zone 0"))
 }
 resource "aws_subnet" "az1" {
   vpc_id                  = aws_vpc.vpc0.id
   map_public_ip_on_launch = true
-  cidr_block              = "10.0.1.0/24"
+  cidr_block              = var.az1_cidr
   availability_zone       = data.aws_availability_zones.available.names[1]
   tags                    = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "subnet for zone 1"))
 }
