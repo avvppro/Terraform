@@ -26,7 +26,7 @@ resource "aws_security_group" "for_web_server" {
       from_port   = ingress.value
       to_port     = ingress.value
       protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"] #from anywhere
+      cidr_blocks = [var.vpc0_cidr] #from my vpc
     }
   }
   ingress {
@@ -133,7 +133,8 @@ resource "aws_elb" "web_elb" {
 }
 #-------------------------------------------------------------------------------
 resource "aws_vpc" "vpc0" {
-  cidr_block = "10.0.0.0/16"
+  cidr_block = var.vpc0_cidr
+  tags       = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "my vpc0"))
 }
 resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.vpc0.id
@@ -146,7 +147,7 @@ resource "aws_route_table" "route0" {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.gw.id
   }
-  tags = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "route table custom"))
+  tags = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "route table vpc0+igw0"))
 }
 resource "aws_main_route_table_association" "a" {
   vpc_id         = aws_vpc.vpc0.id
@@ -158,14 +159,14 @@ resource "aws_subnet" "az0" {
   map_public_ip_on_launch = true
   cidr_block              = "10.0.0.0/24"
   availability_zone       = data.aws_availability_zones.available.names[0]
-  tags                    = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "My subnet for zone 0"))
+  tags                    = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "subnet for zone 0"))
 }
 resource "aws_subnet" "az1" {
   vpc_id                  = aws_vpc.vpc0.id
   map_public_ip_on_launch = true
   cidr_block              = "10.0.1.0/24"
   availability_zone       = data.aws_availability_zones.available.names[1]
-  tags                    = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "My subnet for zone 1"))
+  tags                    = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "subnet for zone 1"))
 }
 #-----------Load balancer url for domain creation ------------------------------
 output "web_elb_url" {
