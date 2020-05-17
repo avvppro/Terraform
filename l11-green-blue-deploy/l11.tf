@@ -29,6 +29,12 @@ resource "aws_security_group" "for_web_server" {
       cidr_blocks = ["0.0.0.0/0"] #from anywhere
     }
   }
+  ingress {
+    from_port   = 8
+    to_port     = 0
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
   egress {
     from_port   = 0
     to_port     = 0
@@ -52,6 +58,7 @@ resource "aws_security_group" "for_load_balancer" {
       cidr_blocks = ["0.0.0.0/0"] #from anywhere
     }
   }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -76,14 +83,15 @@ resource "aws_launch_configuration" "web" {
 # new launch_configuration, autoscaling_group and instance will be createn
 # then load_balancer switches to new instances. Old instance, autoscaling_group and launch_configuration will be destroy
 resource "aws_autoscaling_group" "web_scale" {
-  name                 = "ASG-for-${aws_launch_configuration.web.name}" #depends on the name of aws_launch_configuration
-  launch_configuration = aws_launch_configuration.web.name
-  min_size             = 2
-  max_size             = 2
-  min_elb_capacity     = 2
-  vpc_zone_identifier  = [aws_subnet.az0.id, aws_subnet.az1.id]
-  health_check_type    = "ELB"
-  load_balancers       = [aws_elb.web_elb.name]
+  name                      = "ASG-for-${aws_launch_configuration.web.name}" #depends on the name of aws_launch_configuration
+  launch_configuration      = aws_launch_configuration.web.name
+  min_size                  = 2
+  max_size                  = 2
+  min_elb_capacity          = 2
+  vpc_zone_identifier       = [aws_subnet.az0.id, aws_subnet.az1.id]
+  health_check_type         = "ELB"
+  load_balancers            = [aws_elb.web_elb.name]
+  wait_for_capacity_timeout = "5m"
   dynamic "tag" {
     for_each = {
       #   tag.key = "tag.value" << how to create tags in circle
@@ -117,9 +125,9 @@ resource "aws_elb" "web_elb" {
   health_check {
     healthy_threshold   = 2
     unhealthy_threshold = 2
-    timeout             = 2
+    timeout             = 10
     target              = "HTTP:80/"
-    interval            = 10
+    interval            = 60
   }
   tags = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "Web-servers-ELB"))
 }
@@ -130,6 +138,19 @@ resource "aws_vpc" "vpc0" {
 resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.vpc0.id
   tags   = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "Internet GW for vpc0"))
+}
+resource "aws_route_table" "route0" {
+  vpc_id = aws_vpc.vpc0.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.gw.id
+  }
+  tags = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "route table custom"))
+}
+resource "aws_main_route_table_association" "a" {
+  vpc_id         = aws_vpc.vpc0.id
+  route_table_id = aws_route_table.route0.id
 }
 
 resource "aws_subnet" "az0" {
@@ -146,17 +167,6 @@ resource "aws_subnet" "az1" {
   availability_zone       = data.aws_availability_zones.available.names[1]
   tags                    = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "My subnet for zone 1"))
 }
-#------Default subnets  for web servers in 2 zones------------------------------
-/*
-resource "aws_default_subnet" "default_az0" {
-  availability_zone = data.aws_availability_zones.available.names[0]
-  tags              = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "Default subnet for zone 0"))
-}
-resource "aws_default_subnet" "default_az1" {
-  availability_zone = data.aws_availability_zones.available.names[1]
-  tags              = merge(var.common_tags, map("Stage", "${var.stage}"), map("Name", "Default subnet for zone 1"))
-}
-*/
 #-----------Load balancer url for domain creation ------------------------------
 output "web_elb_url" {
   value = aws_elb.web_elb.dns_name
