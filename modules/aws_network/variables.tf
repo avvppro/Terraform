@@ -1,5 +1,5 @@
 #default variables-list
-variable "vpc_cidr" {
+variable "cidr_block" {
   default = "10.2.0.0/16"
 }
 
