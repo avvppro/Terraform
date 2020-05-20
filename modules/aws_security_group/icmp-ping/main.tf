@@ -5,11 +5,12 @@ resource "aws_security_group" "main" {
   vpc_id      = var.vpc_id
 
   ingress {
-    from_port   = 8
-    to_port     = 0
-    protocol    = "icmp"
-    cidr_blocks = [var.ingress_cidr]
-
+    content {
+      from_port   = 8
+      to_port     = 0
+      protocol    = var.protocol
+      cidr_blocks = [var.ingress_cidr]
+    }
   }
   egress {
     from_port   = 0

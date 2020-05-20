@@ -17,9 +17,6 @@
  v1.2:
  - /*                  save modules on github
 
- v1.3:
- - /aws_security_group add module for icmp-ping          
-
 
 =========================== pro1/dev: ==========================================
 
@@ -35,6 +32,3 @@
 
  v1.3:
  - /security_group     fix  sg module
-
- v1.4:
- - /security_group     add sg module for icmp-ping
