@@ -1,6 +1,4 @@
 #=======================Dev=================================
-output "region"
-value = var.region
 output "public_subnet_ids" {
   value = module.vpc.public_subnet_ids // using from /modules/aws_network/outputs.tf file
 }

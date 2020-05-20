@@ -10,10 +10,13 @@
  v1.1
  - /aws_security_group add module which creates security groups
  - /aws_network        variable names fix
-
+ v1.2
+ - /*                  save modules on github
 ======== pro1/dev: =========
  v1.0
  - /network            create network using module aws_network
  v1.1
  - /network            add backend to s3  avvppro-terraform.tfstate-bucket
  - /security_group     add security group vs allowed ports
+ v1.2
+ - /*                  add /global_vars, import modules from github

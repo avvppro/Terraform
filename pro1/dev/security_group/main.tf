@@ -1,5 +1,5 @@
 provider "aws" {
-  region = data.terraform_remote_state.network.outputs.region
+  region = data.terraform_remote_state.global_vars.outputs.region
 }
 
 terraform { // terraform_remote_state  bucket
@@ -17,9 +17,18 @@ data "terraform_remote_state" "network" { // data from pro1/dev/network for sg c
     region = "eu-central-1"
   }
 }
+data "terraform_remote_state" "global_vars" { // data from pro1/dev/global_vars for sg creation
+  backend = "s3"
+  config = {
+    bucket = "avvppro-terraform.tfstate-bucket"
+    key    = "pro1/dev/global_vars/terraform.tfstate"
+    region = "eu-central-1"
+  }
+}
 
 module "sg" { // overrides variables set in /modules/aws_security_group/tcp/variables.tf directory
-  source      = "../../../modules/aws_security_group/tcp/"
+  // source      = "../../../modules/aws_security_group/tcp/"
+  source      = "git@github.com:avvppro/terraform.git//modules/aws_security_group/tcp"
   env         = "dev"
   name        = "sg"
   protocol    = "tcp"
@@ -29,7 +38,8 @@ module "sg" { // overrides variables set in /modules/aws_security_group/tcp/vari
 }
 
 module "sg1" { // overrides variables set in /modules/aws_security_group/tcp/variables.tf directory
-  source      = "../../../modules/aws_security_group/tcp/"
+  // source      = "../../../modules/aws_security_group/tcp/"
+  source      = "git@github.com:avvppro/terraform.git//modules/aws_security_group/tcp"
   env         = "dev"
   name        = "sg1"
   protocol    = "tcp"
