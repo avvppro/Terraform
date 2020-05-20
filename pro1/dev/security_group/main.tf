@@ -33,7 +33,7 @@ module "sg" { // overrides variables set in /modules/aws_security_group/tcp/vari
   name        = "sg"
   protocol    = "tcp"
   allow_ports = ["80", "443"]
-  vpc_cidr    = data.terraform_remote_state.network.outputs.vpc_cidr
+  vpc_cidr    = "0.0.0.0/0" //for internet access
   vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
 }
 
@@ -44,6 +44,6 @@ module "sg1" { // overrides variables set in /modules/aws_security_group/tcp/var
   name        = "sg1"
   protocol    = "tcp"
   allow_ports = ["22"]
-  vpc_cidr    = data.terraform_remote_state.network.outputs.vpc_cidr
+  vpc_cidr    = data.terraform_remote_state.network.outputs.vpc_cidr // access from internal
   vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
 }
