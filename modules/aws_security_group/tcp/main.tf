@@ -10,7 +10,7 @@ resource "aws_security_group" "main" {
       from_port   = ingress.value
       to_port     = ingress.value
       protocol    = var.protocol
-      cidr_blocks = [var.vpc_cidr]
+      cidr_blocks = [var.ingress_cidr]
     }
   }
   egress {

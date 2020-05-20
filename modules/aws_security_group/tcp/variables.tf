@@ -4,7 +4,7 @@ variable "allow_ports" {
 variable "env" {
   default = ""
 }
-variable "vpc_cidr" {
+variable "ingress_cidr" {
   default = ""
 }
 variable "vpc_id" {
