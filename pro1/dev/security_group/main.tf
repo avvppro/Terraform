@@ -5,7 +5,7 @@ provider "aws" {
 terraform { // terraform_remote_state  bucket
   backend "s3" {
     bucket = "avvppro-terraform.tfstate-bucket"
-    key    = "modules/aws_security_group/tcp/terraform.tfstate"
+    key    = "pro1/dev/security_group/terraform.tfstate"
     region = "eu-central-1"
   }
 }
