@@ -1,15 +1,15 @@
 provider "aws" {
   region = data.terraform_remote_state.global_vars.outputs.region
 }
-/*
+
 terraform { // terraform_remote_state  bucket
   backend "s3" {
     bucket = "avvppro-terraform.tfstate-bucket"
-    key    = "modules/aws_security_group/tcp/terraform.tfstate"
+    key    = "pro1/dev/instance/terraform.tfstate"
     region = "eu-central-1"
   }
 }
-*/
+
 data "terraform_remote_state" "network" { // data from pro1/dev/network for sg creation
   backend = "s3"
   config = {
