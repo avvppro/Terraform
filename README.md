@@ -38,3 +38,5 @@
 
  v1.4:
  - /security_group     add sg module for icmp-ping
+ v1.5:
+ - /instance           add instance vs user data (no key for ssh)
